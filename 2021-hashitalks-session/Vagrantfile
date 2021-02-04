@@ -1,0 +1,38 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+Vagrant.configure(2) do |config|
+
+  config.vm.provider "parallels" do |p, o|
+      p.memory = "1024"
+    end
+    # Increase memory for Virtualbox
+    config.vm.provider "virtualbox" do |vb|
+          vb.memory = "1024"
+    end
+    # Increase memory for VMware
+    ["vmware_fusion", "vmware_workstation"].each do |p|
+      config.vm.provider p do |v|
+        v.vmx["memsize"] = "1024"
+        v.vmx["numvcpus"] = "2"
+      end
+    end
+  #  config.vm.provision "shell", path: "bootstrap.sh"
+
+  VaultCount = 1
+  # Demostack Server Nodes
+  (1..VaultCount).each do |i|
+    config.vm.define "vaultserver#{i}" do |vaultnode|
+    vaultnode.vm.box = "bento/ubuntu-20.04"
+      # vaultnode.vm.network "public_network", use_dhcp_assigned_default_route: true
+      vaultnode.vm.network "private_network", ip: "172.17.16.10#{i}"
+      vaultnode.vm.network "forwarded_port", guest: "8200", host: "8200"
+      vaultnode.vm.network "forwarded_port", guest: "8500", host: "8500"
+      vaultnode.vm.provision "shell", path: "scripts/bootstrap.sh", preserve_order: true , run:"after"
+      vaultnode.vm.provision "shell", path: "scripts/consul/init.sh", preserve_order: true , run:"after"
+      vaultnode.vm.provision "shell", path: "scripts/vault/init.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}"]
+    end
+  end
+
+  end
