@@ -1,3 +1,23 @@
+# ignore Vagrant Specific configurations
+*/.vagrant*
+
+# ignore terraform Specific configurations
+#  Local .terraform directories
+.terraform/
+*/.terraform/*
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files
+*.tfvars
+
+backend.hcl
+
+
+# 
 *.gem
 *.rbc
 /.config
