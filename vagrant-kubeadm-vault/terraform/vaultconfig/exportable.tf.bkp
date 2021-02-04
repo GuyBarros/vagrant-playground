@@ -1,0 +1,19 @@
+resource "vault_pki_secret_backend" "withkey" {
+  path = "withkey"
+}
+resource "vault_pki_secret_backend_root_cert" "withkey" {
+  depends_on = [ vault_pki_secret_backend.withkey ]
+  backend = vault_pki_secret_backend.withkey.path
+  type = "exported"
+  common_name = "kubernetes-ca"
+  format = "pem_bundle"
+}
+output "vault_cert_bundle" {
+    value = vault_pki_secret_backend_root_cert.test.certificate
+}
+output "vault_private_key" {
+    value = regex("-{5}BEGIN RSA PRIVATE KEY-{5}[\\s\\S]*?-{5}END RSA PRIVATE KEY-{5}", vault_pki_secret_backend_root_cert.test.certificate)
+}
+output "vault_certificate" {
+    value = regex("-{5}BEGIN CERTIFICATE-{5}[\\s\\S]*?-{5}END CERTIFICATE-{5}", vault_pki_secret_backend_root_cert.test.certificate)
+}

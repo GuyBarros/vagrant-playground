@@ -8,9 +8,9 @@ sudo tee /etc/consul.d/config.json > /dev/null <<EOF
   "primary_datacenter":  "dc1",
   "bootstrap_expect": 1,
   "client_addr": "0.0.0.0",
+  "bind_addr": "$2",
   "data_dir": "/mnt/consul",
   "leave_on_terminate": true,
-  "retry_join": ["172.17.16.101","172.17.16.102","172.17.16.103"],
   "server": true,
   "ports": {
     "http": 8500,
@@ -53,7 +53,7 @@ Requires=network-online.target
 After=network-online.target
 [Service]
 Restart=on-failure
-ExecStart=consul agent -bind '{{ GetInterfaceIP "eth2" }}' -config-dir="/etc/consul.d"
+ExecStart=consul agent -config-dir="/etc/consul.d"
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGINT
 [Install]
@@ -63,7 +63,6 @@ sudo systemctl enable consul
 sudo systemctl restart consul
 
 echo "--> setting up resolv.conf"
-##################################
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
 mkdir /etc/systemd/resolved.conf.d
@@ -77,7 +76,4 @@ sudo iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT
 
 systemctl daemon-reload
 systemctl restart systemd-resolved
-##################################
-
-
 echo "==> Consul is done!"

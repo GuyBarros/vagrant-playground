@@ -30,7 +30,7 @@ Vagrant.configure(2) do |config|
       vaultnode.vm.network "forwarded_port", guest: "8200", host: "8200"
       vaultnode.vm.network "forwarded_port", guest: "8500", host: "8500"
       vaultnode.vm.provision "shell", path: "scripts/bootstrap.sh", preserve_order: true , run:"after"
-      vaultnode.vm.provision "shell", path: "scripts/consul/init.sh", preserve_order: true , run:"after"
+      vaultnode.vm.provision "shell", path: "scripts/consul/init.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}"]
       vaultnode.vm.provision "shell", path: "scripts/vault/init.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}"]
     end
   end

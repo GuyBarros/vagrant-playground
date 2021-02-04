@@ -10,10 +10,17 @@ sudo mkdir -p /etc/vault.d/plugins
 sudo tee /etc/vault.d/config.hcl > /dev/null <<EOF
 cluster_name = "demostack"
 cluster_addr = "http://$2:8201"
+
 storage "raft" {
   path = "/etc/vault.d/raft"
   node_id = "raft_node_$1"
 }
+
+service_registration "consul" {
+  address      = "127.0.0.1:8500"
+  scheme       = "http"
+}
+
 listener "tcp" {
   address       = "0.0.0.0:8200"
    tls_disable = true
@@ -82,7 +89,7 @@ if [ $? -eq 2 ]; then
 vault operator unseal $(grep -h 'Unseal Key 1' keys.txt | awk '{print $NF}')
 vault operator unseal $(grep -h 'Unseal Key 2' keys.txt | awk '{print $NF}')
 vault operator unseal $(grep -h 'Unseal Key 3' keys.txt | awk '{print $NF}')
- sleep 2
+ sleep 10
 fi
 
 vault operator init -status > /dev/null
@@ -90,14 +97,8 @@ if [ $? -eq 0 ]; then
 # login
 vault login $(grep -h 'Initial Root Token' keys.txt | awk '{print $NF}') > /dev/null
 vault token create -id root -display-name root
-vault audit enable file file_path=/vagrant/vault_logs/node$1/logs/$(date "+%Y%m%d%H%M.%S").log.json
+vault audit enable file file_path=/etc/vault.d/logs/$(date "+%Y%m%d%H%M.%S").log.json
 echo "==> Vault is done!"
 fi
 
-
-
-
-
-
-
-echo "==> This is a test $2 $(echo $2-1)"
+echo "==> This is a test $2"
