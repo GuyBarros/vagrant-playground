@@ -30,9 +30,12 @@ sudo apt-get install -y \
     jq \
     sshpass \
     terraform \
-    vault \
-    consul \
-     nomad
+    consul-enterprise \
+    vault-enterprise \
+    nomad-enterprise
+  #  vault \
+  #  consul \
+  #   nomad
 
 # (Install Docker CE)
 # Add Docker's official GPG key:
@@ -63,6 +66,9 @@ cat <<EOF | sudo tee /etc/docker/daemon.json
 EOF
 
 sudo mkdir -p /etc/systemd/system/docker.service.d
+
+#add vagrant user to docker group
+sudo usermod -aG docker vagrant && newgrp docker
 
 # Restart Docker
 sudo systemctl daemon-reload

@@ -1,0 +1,176 @@
+# Default values for jenkins.
+# This is a YAML-formatted file.
+# Declare name/value pairs to be passed into your templates.
+# name: value
+
+## Overrides for generated resource names
+# See templates/_helpers.tpl
+# nameOverride:
+# fullnameOverride:
+# namespaceOverride:
+
+# For FQDN resolving of the master service. Change this value to match your existing configuration.
+# ref: https://github.com/kubernetes/dns/blob/master/docs/specification.md
+clusterZone: "cluster.local"
+
+master:
+  enableXmlConfig: true
+  adminUser: "admin"
+  adminPassword: "admin"
+  serviceType: NodePort
+  slaveKubernetesNamespace: workers
+  # List of plugins to be install during Jenkins master start
+  installPlugins:
+    - kubernetes:1.25.7
+    - kubernetes-credentials:0.6.2
+    - workflow-job:2.39
+    - workflow-aggregator:2.6
+    - credentials-binding:1.23
+    - credentials:2.3.11
+    - git:4.2.2
+    - configuration-as-code:1.41
+
+  # Jenkins XML job configs to provision
+  jobs:
+    pipeline-job: |-
+      <?xml version='1.1' encoding='UTF-8'?>
+      <flow-definition plugin="workflow-job@2.36">
+        <actions>
+          <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@1.6.0"/>
+          <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@1.6.0">
+            <jobProperties/>
+            <triggers/>
+            <parameters/>
+            <options/>
+          </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+        </actions>
+        <description></description>
+        <keepDependencies>false</keepDependencies>
+        <properties/>
+        <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.80">
+          <script>
+          pipeline {
+              agent { label 'test-agent' }
+              stages {
+                  stage('first_stage') {
+                      steps {
+                          container('builder') {
+                              echo 'LEAK!'
+                              sh '''
+                              set +x
+                              ls -lha /root/
+                              cat /root/* || true
+                              '''
+                          }
+                      }
+                  }
+              }
+          }
+          </script>
+          <sandbox>true</sandbox>
+        </definition>
+        <triggers/>
+        <disabled>false</disabled>
+      </flow-definition>
+  # Below is the implementation of Jenkins Configuration as Code.  Add a key under configScripts for each configuration area,
+  # where each corresponds to a plugin or section of the UI.  Each key (prior to | character) is just a label, and can be any value.
+  # Keys are only used to give the section a meaningful name.  The only restriction is they may only contain RFC 1123 \ DNS label
+  # characters: lowercase letters, numbers, and hyphens.  The keys become the name of a configuration yaml file on the master in
+  # /var/jenkins_home/casc_configs (by default) and will be processed by the Configuration as Code Plugin.  The lines after each |
+  # become the content of the configuration yaml file.  The first line after this is a JCasC root element, eg jenkins, credentials,
+  # etc.  Best reference is https://<jenkins_url>/configuration-as-code/reference.  The example below creates a welcome message:
+  JCasC:
+    enabled: true
+    defaultConfig: true
+    configScripts:
+      config: |-2
+        jenkins:
+          systemMessage: "Welcome to our CI\\CD server.  This Jenkins is configured and managed\
+            \ 'as code'."
+          views:
+          - all:
+              name: "all"
+agent:
+  enabled: true
+  podTemplates:
+    python: |
+      - name: python
+        label: jenkins-python
+        namespace: workers
+        serviceAccount: demo-jenkins
+        containers:
+          - name: python
+            image: python:3
+            command: "/bin/sh -c"
+            args: "cat"
+            ttyEnabled: true
+            privileged: true
+    dev-agent: |
+      - name: dev-agent
+        label: dev-agent
+        namespace: worker-dev
+        serviceAccount: dev
+        annotations:
+          - key: vault.hashicorp.com/agent-inject
+            value: true
+          - key: vault.hashicorp.com/role
+            value: dev
+          - key: vault.hashicorp.com/namespace
+            value: cluster-1
+          - key: vault.hashicorp.com/agent-inject-token
+            value: true
+          - key: vault.hashicorp.com/secret-volume-path
+            value: /root
+        containers:
+          - name: builder
+            image: builder:v0
+            command: "/bin/sh -c"
+            args: "cat"
+            ttyEnabled: true
+            privileged: true
+    test-agent: |
+      - name: test-agent
+        label: test-agent
+        namespace: worker-test
+        serviceAccount: test
+        annotations:
+          - key: vault.hashicorp.com/agent-inject
+            value: true
+          - key: vault.hashicorp.com/role
+            value: test
+          - key: vault.hashicorp.com/namespace
+            value: cluster-1
+          - key: vault.hashicorp.com/agent-inject-token
+            value: true
+          - key: vault.hashicorp.com/secret-volume-path
+            value: /root
+        containers:
+          - name: builder
+            image: builder:v0
+            command: "/bin/sh -c"
+            args: "cat"
+            ttyEnabled: true
+            privileged: true
+    prod-agent: |
+      - name: prod-agent
+        label: prod-agent
+        namespace: worker-prod
+        serviceAccount: prod
+        annotations:
+          - key: vault.hashicorp.com/agent-inject
+            value: true
+          - key: vault.hashicorp.com/role
+            value: prod
+          - key: vault.hashicorp.com/namespace
+            value: cluster-1
+          - key: vault.hashicorp.com/agent-inject-token
+            value: true
+          - key: vault.hashicorp.com/secret-volume-path
+            value: /root
+        containers:
+          - name: builder
+            image: builder:v0
+            command: "/bin/sh -c"
+            args: "cat"
+            ttyEnabled: true
+            privileged: true

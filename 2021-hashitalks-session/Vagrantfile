@@ -14,8 +14,8 @@ Vagrant.configure(2) do |config|
     # Increase memory for VMware
     ["vmware_fusion", "vmware_workstation"].each do |p|
       config.vm.provider p do |v|
-        v.vmx["memsize"] = "1024"
-        v.vmx["numvcpus"] = "2"
+        v.vmx["memsize"] = "8192"
+        v.vmx["numvcpus"] = "8"
       end
     end
   #  config.vm.provision "shell", path: "bootstrap.sh"
@@ -32,6 +32,21 @@ Vagrant.configure(2) do |config|
       vaultnode.vm.provision "shell", path: "scripts/bootstrap.sh", preserve_order: true , run:"after"
       vaultnode.vm.provision "shell", path: "scripts/consul/init.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}"]
       vaultnode.vm.provision "shell", path: "scripts/vault/init.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}"]
+    end
+  end
+
+  MiniKubeCount = 1
+  # Demostack Server Nodes
+  (1..MiniKubeCount).each do |i|
+    config.vm.define "minikube#{i}" do |minikube|
+    minikube.vm.box = "bento/ubuntu-20.04"
+      # minikube.vm.network "public_network", use_dhcp_assigned_default_route: true
+      minikube.vm.network "private_network", ip: "172.17.16.11#{i}"
+      minikube.vm.provision "shell", path: "scripts/bootstrap.sh", preserve_order: true , run:"after"
+      minikube.vm.provision "shell", path: "scripts/minikube/init.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}", "172.17.18.10#{i}" ] , env: {"VAULT_TOKEN" => "root"}
+     # minikube.vm.provision "shell", path: "scripts/minikube/setup.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}", "172.17.18.10#{i}" ] ,env: {"VAULT_TOKEN" => "root"}
+    # minikube.vm.provision "shell", path: "scripts/minikube/00_start.sh", preserve_order: true , run:"after", args: ["#{i}", "172.17.16.10#{i}", "172.17.18.10#{i}" ] ,env: {"VAULT_TOKEN" => "root"}
+     minikube.vm.provision "shell", path: "scripts/minikube/01_setup.sh", preserve_order: true , run:"after", env: {"VAULT_TOKEN" => "root"}
     end
   end
 
